@@ -139,7 +139,22 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.jks
+          # Pasted secrets often pick up spaces, line breaks or the
+          # "Value:" label from the notes file: keep only base64 characters.
+          printf '%s' "$KEYSTORE_BASE64" | sed 's/^[[:space:]]*Value:[[:space:]]*//' \
+            | tr -cd 'A-Za-z0-9+/=' > keystore.b64
+          if ! base64 -d keystore.b64 > android/app/release.jks 2>/dev/null; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not valid base64. Paste the long value again, without anything before or after it."
+            exit 1
+          fi
+          rm -f keystore.b64
+          KEYSTORE_PASSWORD=$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n' | sed 's/^ *Value: *//; s/^ *//; s/ *$//')
+          KEY_PASSWORD=$(printf '%s' "$KEY_PASSWORD" | tr -d '\r\n' | sed 's/^ *Value: *//; s/^ *//; s/ *$//')
+          KEY_ALIAS=$(printf '%s' "$KEY_ALIAS" | tr -d '\r\n' | sed 's/^ *Value: *//; s/^ *//; s/ *$//')
+          if ! keytool -list -keystore android/app/release.jks -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+            echo "::error::The signing key opened, but ANDROID_KEYSTORE_PASSWORD or ANDROID_KEY_ALIAS does not match it (or the key value is incomplete)."
+            exit 1
+          fi
           cat > android/key.properties <<PROPS
           storeFile=release.jks
           storePassword=$KEYSTORE_PASSWORD
