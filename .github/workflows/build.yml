@@ -76,6 +76,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.50.0'
           cache: true
       - run: flutter pub get
       - run: flutter analyze
@@ -125,6 +126,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.50.0'
           cache: true
       - name: Refuse to release without the signing key
         if: env.HAS_SIGNING_KEY != 'true' && env.RELEASE_TAG != ''
@@ -192,6 +194,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.50.0'
           cache: true
       - name: Test the self-update script
         run: flutter test test/updater_windows_test.dart
